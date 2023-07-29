@@ -1,0 +1,19 @@
+{
+  "x": 0,
+  "wins": {
+    "watch_cjs": {
+      "cmd": "cls && npm run precompile && npm run watch:cjs",
+      "no_run": false
+    },
+    "watch_types": {
+      "cmd": "cls && npm run precompile && npm run watch:types",
+      "no_run": false
+    },
+    "precompile": {
+      "cmd": "cls && npm run precompile",
+      "no_run": true
+    }
+  },
+  "disabled": {
+  }
+}

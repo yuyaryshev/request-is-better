@@ -1,0 +1,1 @@
+cls & npm run dev_server
