@@ -8,10 +8,12 @@ export interface MessageToReqResInput {
     timeout?: number;
 }
 
-export function messagingToRequestResponse(opts: MessageToReqResInput) {
+export type RequestFunc<TReq = unknown, TRes = unknown> = (m: TReq) => Promise<TRes> | TRes;
+
+export function messagingToRequestResponse<TReq = unknown, TRes = unknown>(opts: MessageToReqResInput) {
     let lastRequestId = 0;
     const requests: { [key: number]: RequestContext } = {};
-    function request(m: unknown): Promise<unknown> | unknown {
+    function request(m: any): Promise<any> | any {
         lastRequestId = ++lastRequestId < Number.MAX_SAFE_INTEGER - 1 ? lastRequestId : 1;
         const requestId = lastRequestId;
         requests[requestId] = {};
@@ -50,7 +52,7 @@ export function messagingToRequestResponse(opts: MessageToReqResInput) {
             }
         }
     }
-    return { request, onReceive: onReceive as (m: unknown) => void };
+    return { request: request as RequestFunc<TReq, TRes>, onReceive: onReceive as (m: unknown) => void };
 }
 
 type UnkRequestId = number;
