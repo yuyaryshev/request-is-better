@@ -79,6 +79,9 @@ If set to true, the library will ignore responses that do not match a known requ
 - `timeout?: number`
 If provided, each request will automatically be rejected after this duration (in milliseconds) if no response is received.
 
+- `noWrap?: boolean`
+If true, than message should always be an object. And in that object field `__r` will be used by `request-is-better` to store requestId, so this field name shouldn't be occupied by the caller.
+
 # Contributing
 Please submit an issue or pull request on our GitHub repository.
 https://github.com/yuyaryshev/request-is-better

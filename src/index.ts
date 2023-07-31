@@ -6,6 +6,7 @@ export interface MessageToReqResInput {
 
     ignoreUnknownResponses?: boolean;
     timeout?: number;
+    noWrap?: boolean; // Don't wrap messages into another object, just inject __r field inside message
 }
 
 export type RequestFunc<TReq = unknown, TRes = unknown> = (m: TReq) => Promise<TRes> | TRes;
@@ -18,7 +19,10 @@ export function messagingToRequestResponse<TReq = unknown, TRes = unknown>(opts:
         const requestId = lastRequestId;
         requests[requestId] = {};
 
-        const vRaw: any = opts.send({ r: requestId, m } as RawMessage);
+        if (opts.noWrap) {
+            (m as any).__r = requestId;
+        }
+        const vRaw: any = opts.send(opts.noWrap ? (m as any) : ({ __r: requestId, m } as WrappedMessage));
 
         if (requests[requestId].syncResolved) {
             const r = requests[requestId].syncResult;
@@ -36,19 +40,21 @@ export function messagingToRequestResponse<TReq = unknown, TRes = unknown>(opts:
                 }
             });
     }
-    function onReceive(rm: RawMessage) {
-        const context = requests[rm.r];
+    function onReceive(rm: WrappedMessage) {
+        const requestId = rm.__r;
+        delete (rm as any).__r;
+        const context = requests[requestId];
         if (context) {
             if (context.resolve) {
-                context.resolve(rm.m);
-                delete requests[rm.r];
+                context.resolve(opts.noWrap ? rm : rm.m);
+                delete requests[requestId];
             } else {
-                context.syncResult = rm.m;
+                context.syncResult = opts.noWrap ? rm : rm.m;
                 context.syncResolved = true;
             }
         } else {
             if (!opts.ignoreUnknownResponses) {
-                console.trace(`CODE00000001 Unknown response. There is no request with id = ${rm.r || "undefined"}`);
+                console.trace(`CODE00000001 Unknown response. There is no request with id = ${requestId || "undefined"}`);
             }
         }
     }
@@ -65,7 +71,12 @@ interface RequestContext {
     reject?: RejectFunc;
     timerHandle?: any;
 }
-interface RawMessage {
-    r: UnkRequestId;
+
+interface WrappedMessage {
+    __r: UnkRequestId;
     m: unknown;
+}
+
+interface MessageWithInjectedR {
+    __r: UnkRequestId;
 }

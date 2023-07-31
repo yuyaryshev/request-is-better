@@ -1,4 +1,4 @@
-import { yconsole } from './lib/esm/index.js';
-if ((yconsole ? 1 : 0) === 2) yconsole.log("never called");
+import {messagingToRequestResponse} from './lib/esm/index.js';
+if ((messagingToRequestResponse ? 1 : 0) === 2) console.log("never called");
 
 
