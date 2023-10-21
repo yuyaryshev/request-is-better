@@ -81,6 +81,20 @@ If provided, each request will automatically be rejected after this duration (in
 
 - `noWrap?: boolean`
 If true, than message should always be an object. And in that object field `__r` will be used by `request-is-better` to store requestId, so this field name shouldn't be occupied by the caller.
+ 
+- `uniqualizer?: object` - if passed should be an object. A hidden field will be created in this object, so multiple calls to `request-is-better` will yield to only one object avoiding common error #1. `uniqualizer` isn't used by library for anything but this. 
+
+# Common errors
+## 1. Multiple calls to messagingToRequestResponse
+  - Symptoms:
+    - Error `Unknown response. There is no request with id = 1`
+  - Common causes:
+    - Most likely you have called to messagingToRequestResponse more than once
+    - Or maybe you have called on('message', onReceive) more than once
+  - Solutions:
+    - Use opts.attachTo with channel itself. Be sure to pass initial object, not derived ones (which could be dublicated somewhere).
+    - Store resulting 'request' on a channel itself and check if it's there before calling to messagingToRequestResponse
+    - Use any other method to avoid multiple calls 
 
 # Contributing
 Please submit an issue or pull request on our GitHub repository.

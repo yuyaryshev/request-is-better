@@ -1,6 +1,6 @@
 {
     "name": "request-is-better",
-    "version": "1.0.1",
+    "version": "1.1.1",
     "description": "request-is-better is a TypeScript library which makes it easier to use request-response calls on any channel that implements a send-receive message interface.",
     "isApp": false,
     "author": "Yuri Yaryshev",

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { Server } from "ws";
-import { messagingToRequestResponse } from "./index.js";
+import { extractRequestValue, messagingToRequestResponse, prepareResponseWrapped } from "./index.js";
 import WebSocket from "ws";
 
 describe("ws.test.ts", () => {
@@ -9,16 +9,17 @@ describe("ws.test.ts", () => {
         let client: WebSocket | undefined;
         try {
             server.on("connection", async (ws) => {
-                ws.on("message", (message) => {
-                    // Simulate server response
-                    const r = JSON.parse(message as any);
-                    r.m.serverResponse = true;
-                    ws.send(JSON.stringify(r));
+                ws.on("message", (request) => {
+                    const parsedRequest = JSON.parse(request as any);
+                    const requestData = extractRequestValue(parsedRequest);
+                    const responseData = { ...requestData, serverResponse: true };
+                    const response = prepareResponseWrapped(parsedRequest, responseData);
+                    ws.send(JSON.stringify(response));
                 });
             });
 
             client = new WebSocket("ws://localhost:8080");
-            const { request, onReceive } = messagingToRequestResponse({ send: (m: unknown) => client!.send(JSON.stringify(m)) });
+            const { request, onReceive } = messagingToRequestResponse({ send: (m: unknown) => client!.send(JSON.stringify(m)), uniqualizer: client });
             client.on("message", (m: unknown) => {
                 return onReceive(JSON.parse(m as string));
             });
@@ -60,15 +61,20 @@ describe("ws.test.ts", () => {
             });
 
             const client = new WebSocket("ws://localhost:8081");
-            client.on("message", (message) => {
-                const r = JSON.parse(message as any);
-                r.m.clientResponse = true;
-                client.send(JSON.stringify(r));
+            client.on("message", (request) => {
+                const parsedRequest = JSON.parse(request as any);
+                const requestData = extractRequestValue(parsedRequest);
+                const responseData = { ...requestData, clientResponse: true };
+                const response = prepareResponseWrapped(parsedRequest, responseData);
+                client.send(JSON.stringify(response));
             });
 
             await clientConnectedPromise;
 
-            const { request, onReceive } = messagingToRequestResponse({ send: (m: unknown) => clientSessionOnServer!.send(JSON.stringify(m)) });
+            const { request, onReceive } = messagingToRequestResponse({
+                send: (m: unknown) => clientSessionOnServer!.send(JSON.stringify(m)),
+                uniqualizer: clientSessionOnServer,
+            });
             clientSessionOnServer!.on("message", (m: unknown) => {
                 return onReceive(JSON.parse(m as string));
             });

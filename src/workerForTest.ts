@@ -1,5 +1,5 @@
 import { parentPort, workerData, isMainThread } from "node:worker_threads";
-import { messagingToRequestResponse } from "./index.js";
+import { extractRequestValue, messagingToRequestResponse, prepareResponseWrapped } from "./index.js";
 import { expect } from "chai";
 
 if (isMainThread) {
@@ -22,27 +22,27 @@ if (workerData === "workerToHost") {
         // const { request, onReceive } = messagingToRequestResponseEx({ send: (m: unknown) => parentPort!.postMessage(JSON.stringify(m)) });
         // parentPort!.on("message", (m: unknown) => onReceive(JSON.parse(m as string)));
 
-        const { request, onReceive } = messagingToRequestResponse({ send: (m: unknown) => parentPort!.postMessage(m) });
+        const { request, onReceive } = messagingToRequestResponse({ send: (m: unknown) => parentPort!.postMessage(m), uniqualizer: parentPort! });
         parentPort!.on("message", onReceive);
 
         {
             const response: any = await request({ msg: "message1" });
-            expect(response).to.eql({ msg: "message1" });
+            expect(response).to.eql({ msg: "message1", workerHostResponse: true });
         }
 
         {
             const response: any = await request({ msg: "message2" });
-            expect(response).to.eql({ msg: "message2" });
+            expect(response).to.eql({ msg: "message2", workerHostResponse: true });
         }
 
         {
             const response: any = await request({ msg: "message3" });
-            expect(response).to.eql({ msg: "message3" });
+            expect(response).to.eql({ msg: "message3", workerHostResponse: true });
         }
 
         {
             const response: any = await request({ msg: "done" });
-            expect(response).to.eql({ msg: "done" });
+            expect(response).to.eql({ msg: "done", workerHostResponse: true });
         }
 
         setTimeout(() => {
@@ -50,10 +50,13 @@ if (workerData === "workerToHost") {
         }, 100);
     });
 } else {
-    parentPort.on("message", (message) => {
-        // Just echo the message back
-        parentPort!.postMessage(message);
-        if (message.msg === "exit") {
+    parentPort.on("message", (request) => {
+        const requestData = extractRequestValue(request);
+        const responseData = { ...requestData, workerResponse: true };
+        const response = prepareResponseWrapped(request, responseData);
+
+        parentPort!.postMessage(response);
+        if (request.msg === "exit") {
             process.exit();
         }
     });

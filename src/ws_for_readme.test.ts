@@ -2,7 +2,7 @@ import { expect } from "chai";
 import WebSocket, { Server } from "ws";
 // In your code use the following line instead of "./index.js";
 // import { messagingToRequestResponse } from "request-is-better";
-import { messagingToRequestResponse } from "./index.js";
+import { extractRequestValue, messagingToRequestResponse, prepareResponseWrapped } from "./index.js";
 
 describe("ws_for_readme.test.ts", () => {
     it("client requests server", async () => {
@@ -11,14 +11,20 @@ describe("ws_for_readme.test.ts", () => {
         try {
             // Stub ws echo server
             server.on("connection", async (ws) => {
-                ws.on("message", (message) => ws.send(message));
+                ws.on("message", (request) => {
+                    const parsedRequest = JSON.parse(request as any);
+                    const requestData = extractRequestValue(parsedRequest);
+                    const responseData = { ...requestData }; // Just copy data from request
+                    const response = prepareResponseWrapped(parsedRequest, responseData);
+                    ws.send(JSON.stringify(response));
+                });
             });
 
             // Ws client connected to the server
             client = new WebSocket("ws://localhost:8080");
 
             // Next two lines is how to use 'messagingToRequestResponse' from request is better
-            const { request, onReceive } = messagingToRequestResponse({ send: (m: unknown) => client!.send(JSON.stringify(m)) });
+            const { request, onReceive } = messagingToRequestResponse({ send: (m: unknown) => client!.send(JSON.stringify(m)), uniqualizer: client });
             client.on("message", (m: unknown) => onReceive(JSON.parse(m as string)));
 
             // We have to wait for client to connect to the server
